@@ -66,3 +66,13 @@ def load_from_long_term_memory(key: str) -> dict | list | str | None:
     row = cursor.fetchone()
     conn.close()
     return json.loads(row[0]) if row else None
+
+
+def clear_all_long_term_memory():
+    """Clears all stored candidate profiles and applied jobs from SQLite."""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM candidate_memory")
+    cursor.execute("DELETE FROM applied_jobs")
+    conn.commit()
+    conn.close()

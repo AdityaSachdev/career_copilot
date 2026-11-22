@@ -33,7 +33,7 @@ Workflow:
    - Also acceptable: Direct company career portal/ATS links (e.g. `jobs.lever.co/...`, `boards.greenhouse.io/...`, `careers.<company>.com/job/...`, `workday.com/...`).
    - INVALID LINKS (DO NOT USE): `linkedin.com/company/...`, `linkedin.com/jobs/search...`, or homepages.
    - If a search result returns a company profile link instead of a specific job view link, execute a follow-up query:
-     `site:linkedin.com/jobs/view "{company}" "{job_title}"`
+     `site:linkedin.com/jobs/view "[Company Name]" "[Job Title]"`
      to extract the exact posting ID before presenting it to the user.
 
 4. For each found job, format:
