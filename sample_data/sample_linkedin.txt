@@ -1,0 +1,21 @@
+# Sample LinkedIn Export for Testing Step 1
+Alex Morgan
+Headline: Senior Backend Engineer | Scaling Cloud Microservices & AI-powered Systems | Open to Advisory & Staff Roles
+
+About:
+Obsessed with high-throughput backend architecture, resilient data pipelines, and developer experience. Recently spending nights building agentic AI tools and exploring Vertex AI & Google ADK. Believe in pragmatic engineering, strong mentorship, and clear documentation.
+
+Skills & Endorsements:
+- Distributed Systems (42 endorsements)
+- Python (58 endorsements)
+- Google Cloud Platform (35 endorsements)
+- API Design & Architecture (29 endorsements)
+- Team Leadership & Agile (18 endorsements)
+- Generative AI & LLM Orchestration (12 endorsements)
+
+Recommendations:
+"Alex has an extraordinary ability to dissect complex backend bottlenecks. Beyond engineering, Alex naturally stepped up as an informal engineering manager, leading sprints and coaching juniors." - Engineering VP at CloudScale Systems.
+
+Projects:
+- Autonomous Job Searcher: Prototype built using Python and Gemini to automate job discovery.
+- Async Kafka Consumer: Open source Python library for resilient message batching (500+ GitHub stars).

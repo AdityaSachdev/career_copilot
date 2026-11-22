@@ -1,0 +1,28 @@
+# Sample Resume for Testing Step 1
+Alex Morgan
+Senior Backend & Python Engineer | Cloud Architect
+Email: alex.morgan@example.com | GitHub: github.com/alexmorgan-dev | Location: Remote / San Francisco, CA
+
+PROFESSIONAL SUMMARY
+Senior Software Engineer with 7+ years of experience designing and scaling distributed backend systems, REST/gRPC APIs, and cloud infrastructure on GCP and AWS. Passionate about Python, asynchronous microservices (FastAPI, asyncio), PostgreSQL performance tuning, and exploring LLM application integrations.
+
+CORE SKILLS
+- Languages: Python, Go, SQL, Bash
+- Frameworks & Libs: FastAPI, Django, Celery, Pydantic, SQLAlchemy, PyTest
+- Data & Storage: PostgreSQL, Redis, Kafka, Elasticsearch
+- Cloud & DevOps: Google Cloud Platform (Cloud Run, GKE, Pub/Sub), Docker, Kubernetes, Terraform, CI/CD (GitHub Actions)
+- Emerging / AI: OpenAI API, Gemini API, LangChain experiments, Vector Databases (Pinecone)
+
+WORK EXPERIENCE
+Senior Backend Engineer | CloudScale Systems (2022 - Present)
+- Architected a real-time event processing pipeline using Python, Kafka, and GCP Cloud Run, handling 25,000 requests/sec with 99.99% uptime.
+- Optimized PostgreSQL queries and connection pooling, reducing p95 database latency by 42%.
+- Mentored 4 junior engineers and spearheaded automated CI/CD migration to GitHub Actions.
+
+Software Engineer | FinFlow Technologies (2019 - 2022)
+- Built core transaction processing services using Python and FastAPI processing $10M+ daily volume.
+- Integrated automated fraud detection heuristics and third-party payment gateways (Stripe, Plaid).
+- Led migration from monolithic architecture to containerized Docker services on Kubernetes.
+
+EDUCATION
+B.S. in Computer Science | University of California, Davis (2015 - 2019)

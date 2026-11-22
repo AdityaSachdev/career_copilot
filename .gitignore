@@ -1,0 +1,31 @@
+# Environment variables (Crucial: never commit your API keys)
+.env
+*.env
+
+# SQLite database files
+*.db
+career_memory.db
+
+# ADK internal sessions & cache
+.adk/
+
+# Python build & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+env/
+venv/
+.venv/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Generated application packages (keeps personal generated CVs off GitHub)
+ready_to_apply/*
+!ready_to_apply/.gitkeep
