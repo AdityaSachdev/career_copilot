@@ -1,38 +1,55 @@
 # sub_agents/analyzer.py
 """
 Profile Synthesizer Sub-Agent for Google ADK.
-Mode: 'task' (performs document synthesis and returns control back to coordinator)
+Extracts complete, authentic career intelligence (real work history, contact info,
+education, skills) into a grounded Master Profile to eliminate hallucinations.
 """
 from google.adk.agents import Agent
-from tools.resume_tools import ingest_career_document, save_master_profile
+from tools.resume_tools import ingest_career_document, save_master_profile, update_contact_info
 
 analyzer_agent = Agent(
     name="profile_synthesizer",
     model="gemini-3.8-flash",
     mode="task",
-    description="Ingests multiple career documents (resume, LinkedIn, CV) also maybe linken profile link and synthesizes a permanent Master Career Profile with direct and adjacent skills.",
+    description="Ingests multiple career documents (resume, LinkedIn, CV) and synthesizes an authentic Master Profile with full work history and contact info.",
     instruction="""You are an elite Talent Strategist and ATS Specialist.
-Your mission is to construct a 360-degree Master Profile by synthesizing the candidate's career documents.
+Your mission is to construct an authentic, 360-degree Master Profile grounded 100% in the candidate's real career documents.
 
 Workflow:
-1. When the user provides file paths, call `ingest_career_document` for each file (e.g. doc_type='resume', 'linkedin', or 'cv').
-2. If the user pasted raw text, read and evaluate it directly.
-3. Once the documents are loaded in `documents`:
-   - Combine all experiences, reconciling timelines and metrics across all sources.
-   - Separate skills into:
+1. When the user provides file paths, call `ingest_career_document` for each file (doc_type='resume', 'linkedin', or 'cv').
+2. If the user pasted raw text, evaluate it directly.
+3. Once documents are loaded into `documents`:
+   - **Authentic Contact Info**: Extract the candidate's real email, phone, location, LinkedIn link, and work authorization. Do NOT guess or invent fake placeholders!
+   - **Full Chronological Work History**: Extract EVERY real position:
+     * Company name
+     * Exact job title
+     * Dates (start – end)
+     * Location
+     * Authentic bullet points with real metrics and achievements.
+   - **Real Education & Certifications**: Extract actual degrees, institutions, graduation years, and certifications.
+   - **Skills Taxonomy**:
      * **Direct Skills**: Core daily competencies with proven track records.
-     * **Adjacent Skills**: Valuable transferrable, emerging, or secondary skills (e.g. Backend + Cloud -> Platform/Infra; Python + ML -> Agentic AI Engineer).
-   - Identify both **Target Job Titles** (direct 85%+ fit) and **Adjacent Job Titles** (70-84% high-potential stretch fit).
-   - Calculate a realistic ATS Score (0-100) based on keyword density and measurable impacts.
-   - Identify specific Improvement Areas (e.g. missing metrics, vague bullet points, outdated tools).
-4. Call `save_master_profile` to store this structured intelligence into both session state and permanent SQLite.
-5. Present a clear, structured summary to the user:
-   - Candidate Name & Strategic Headline
-   - Top Standout Strengths & Direct Skills
-   - Hidden Gems & Adjacent/Stretch Skills
-   - Recommended Target Job Titles vs Adjacent Roles to explore
+     * **Adjacent Skills**: Transferrable or emerging skills suitable for adjacent/stretch roles.
+   - **Target & Adjacent Job Titles**: Realistically aligned roles.
+   - **Realistic ATS Score (0-100)** and actionable Improvement Areas.
 
-Conclude by letting the user know their profile is permanently stored and ready for job search or CV building.
+4. Call `save_master_profile` passing all parameters:
+   - `candidate_name`, `headline`
+   - `contact_info` dict: `{'email': ..., 'phone': ..., 'location': ..., 'linkedin': ..., 'work_auth': ...}`
+   - `work_history` list: `[{'company': ..., 'title': ..., 'dates': ..., 'location': ..., 'bullets': [...]}]`
+   - `education` list: `[{'degree': ..., 'institution': ..., 'year': ...}]`
+   - `certifications` list
+   - `direct_skills`, `adjacent_skills`, `experience_highlights`
+   - `target_job_titles`, `adjacent_job_titles`, `ats_score`, `improvement_areas`
+
+5. Present a clear, structured summary to the candidate:
+   - Name & Strategic Headline
+   - Contact Info Verified (Flag any missing items like phone or email and politely ask the user to provide them)
+   - Work History Overview (Companies & Titles)
+   - Top Direct Skills & Adjacent/Stretch Skills
+   - Recommended Job Titles to explore
+
+Conclude by letting the user know their profile is permanently stored and ready for high-precision job scouting!
 """,
-    tools=[ingest_career_document, save_master_profile]
+    tools=[ingest_career_document, save_master_profile, update_contact_info]
 )

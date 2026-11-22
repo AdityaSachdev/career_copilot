@@ -1,14 +1,12 @@
 # tools/resume_tools.py
 """
 Document Ingestion & Profile Synthesis Tools for Google ADK.
-Demonstrates:
-1. ToolContext injection (how ADK passes state to tools)
-2. Handling multi-document ingestion (Resume, LinkedIn, CV)
-3. Dual-layer storage (Session state + Permanent SQLite memory)
+Captures authentic candidate details (contact info, work history, education)
+to ensure 100% grounded, truthful CV generation without hallucinations.
 """
 from pathlib import Path
 from google.adk.tools import ToolContext
-from tools.memory_db import save_to_long_term_memory
+from tools.memory_db import save_to_long_term_memory, load_from_long_term_memory
 
 def ingest_career_document(
     doc_type: str, 
@@ -19,7 +17,7 @@ def ingest_career_document(
     
     Args:
         doc_type: Type of document. Must be one of: 'resume', 'linkedin', 'cv'.
-        file_path: Relative or absolute path to the PDF or TXT file on disk.
+        file_path: Relative or absolute path to the PDF, DOCX, or TXT file on disk.
     """
     path = Path(file_path).expanduser().resolve()
     if not path.exists():
@@ -43,16 +41,12 @@ def ingest_career_document(
         try: 
             import docx
             doc = docx.Document(str(path))
-            # Extract standard paragraphs
             text_blocks = [p.text for p in doc.paragraphs if p.text.strip()]
-            
-            # Pro tip: Resumes often use tables for skills/columns!
             for table in doc.tables:
                 for row in table.rows:
                     for cell in row.cells:
                         if cell.text.strip():
                             text_blocks.append(cell.text.strip())
-                            
             raw_text = "\n".join(text_blocks)
         except ImportError:
             return "Error: 'python-docx' is not installed. Run 'python3 -m pip install python-docx'."
@@ -94,11 +88,17 @@ def save_master_profile(
     experience_highlights: list[str],
     target_job_titles: list[str],
     adjacent_job_titles: list[str],
-    ats_score : int,
-    improvement_areas : list[str],
-    tool_context: ToolContext
+    ats_score: int,
+    improvement_areas: list[str],
+    tool_context: ToolContext,
+    contact_info: dict = None,
+    work_history: list[dict] = None,
+    education: list[dict] = None,
+    certifications: list[str] = None,
+    raw_summary: str = None
 ) -> str:
     """Saves the synthesized 360-degree Master Profile into BOTH session state and permanent SQLite.
+    Captures complete authentic work history, real contact details, and education to prevent any hallucination.
     
     Args:
         candidate_name: Full name of candidate.
@@ -110,28 +110,83 @@ def save_master_profile(
         adjacent_job_titles: High-potential adjacent or stretch job titles.
         ats_score: Realistic ATS readiness score from 0 to 100.
         improvement_areas: List of weak bullet points, missing keywords, or red flags to fix.
+        contact_info: Authentic contact details {'email': ..., 'phone': ..., 'location': ..., 'linkedin': ..., 'github': ...}.
+        work_history: List of real past positions [{'company': ..., 'title': ..., 'dates': ..., 'location': ..., 'bullets': [...]}].
+        education: List of real degrees [{'degree': ..., 'institution': ..., 'year': ...}].
+        certifications: List of real certifications verified in documents.
+        raw_summary: Executive summary directly from original resume.
     """
     profile = {
         "name": candidate_name,
         "headline": headline,
-        "direct_skills": direct_skills,
-        "adjacent_skills": adjacent_skills,
-        "experience_highlights": experience_highlights,
-        "target_job_titles": target_job_titles,
-        "adjacent_job_titles": adjacent_job_titles,
+        "contact_info": contact_info or {},
+        "direct_skills": direct_skills or [],
+        "adjacent_skills": adjacent_skills or [],
+        "work_history": work_history or [],
+        "education": education or [],
+        "certifications": certifications or [],
+        "experience_highlights": experience_highlights or [],
+        "raw_summary": raw_summary or "",
+        "target_job_titles": target_job_titles or [],
+        "adjacent_job_titles": adjacent_job_titles or [],
         "ats_score": ats_score,
-        "improvement_areas": improvement_areas
+        "improvement_areas": improvement_areas or []
     }
     
-    # Layer 1: Save to active session state (available to all sub-agents in this chat)
+    # Layer 1: Save to active session state
     tool_context.state["master_profile"] = profile
     
-    # Layer 2: Save to permanent SQLite database (persists across sessions and restarts)
+    # Layer 2: Save to permanent SQLite database
     save_to_long_term_memory("master_profile", profile)
+    
+    roles_count = len(profile["work_history"])
+    has_contact = bool(profile["contact_info"].get("email") or profile["contact_info"].get("phone"))
+    contact_notice = "Contact info saved." if has_contact else "Note: Email/phone not found in documents—prompt user to provide them."
     
     return (
         f"Master Profile successfully created for {candidate_name}!\n"
-        f"- {len(direct_skills)} Direct Skills\n"
-        f"- {len(adjacent_skills)} Adjacent Skills\n"
+        f"- {len(direct_skills)} Direct Skills, {len(adjacent_skills)} Adjacent Skills\n"
+        f"- {roles_count} Real Work History Positions stored\n"
+        f"- {contact_notice}\n"
         f"- Saved to permanent memory."
     )
+
+
+def update_contact_info(
+    email: str = None,
+    phone: str = None,
+    location: str = None,
+    linkedin_url: str = None,
+    portfolio_url: str = None,
+    tool_context: ToolContext = None
+) -> str:
+    """Updates or adds the candidate's authentic contact details in their master profile.
+    
+    Args:
+        email: Candidate's real email address.
+        phone: Candidate's real phone number with country code.
+        location: Candidate's current location (e.g. 'Copenhagen, Denmark').
+        linkedin_url: Candidate's LinkedIn profile URL.
+        portfolio_url: Candidate's GitHub or portfolio URL.
+    """
+    profile = tool_context.state.get("master_profile") or load_from_long_term_memory("master_profile")
+    if not profile:
+        return "No profile found yet. Please ingest a resume first."
+        
+    contact = profile.get("contact_info", {})
+    if email:
+        contact["email"] = email.strip()
+    if phone:
+        contact["phone"] = phone.strip()
+    if location:
+        contact["location"] = location.strip()
+    if linkedin_url:
+        contact["linkedin"] = linkedin_url.strip()
+    if portfolio_url:
+        contact["portfolio"] = portfolio_url.strip()
+        
+    profile["contact_info"] = contact
+    tool_context.state["master_profile"] = profile
+    save_to_long_term_memory("master_profile", profile)
+    
+    return f"Contact information updated successfully: {contact}"

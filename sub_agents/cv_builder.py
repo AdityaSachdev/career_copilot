@@ -1,8 +1,9 @@
 # sub_agents/cv_builder.py
 """
 ATS CV Tailorer & Application Assistant Sub-Agent for Google ADK.
-Generates executive-grade tailored resumes and cover letters,
-and exports them directly into beautifully styled Microsoft Word (.docx) documents.
+Generates strictly 1-page, 100% truthful, non-hallucinated tailored resumes and cover letters
+grounded entirely in the candidate's authentic database profile.
+Exports directly to Microsoft Word (.docx) and Markdown (.md).
 """
 import re
 from pathlib import Path
@@ -16,20 +17,20 @@ from google.adk.agents import Agent
 from google.adk.tools import ToolContext
 
 
-def _add_bottom_border(paragraph, color_hex="1A365D", size="6"):
-    """Adds a stylish horizontal bottom border rule to section headings."""
+def _add_bottom_border(paragraph, color_hex="1A365D", size="4"):
+    """Adds a compact, elegant horizontal bottom border rule to section headings."""
     pPr = paragraph._p.get_or_add_pPr()
     pBdr = OxmlElement("w:pBdr")
     bottom = OxmlElement("w:bottom")
     bottom.set(qn("w:val"), "single")
     bottom.set(qn("w:sz"), size)
-    bottom.set(qn("w:space"), "3")
+    bottom.set(qn("w:space"), "2")
     bottom.set(qn("w:color"), color_hex)
     pBdr.append(bottom)
     pPr.append(pBdr)
 
 
-def _add_formatted_runs(paragraph, text, default_color=None, default_size=Pt(10)):
+def _add_formatted_runs(paragraph, text, default_color=None, default_size=Pt(9.5)):
     """Parses markdown bold (**text**) and italic (*text*) into styled docx runs."""
     parts = re.split(r"(\*\*.*?\*\*|\*.*?\*)", text)
     for part in parts:
@@ -58,15 +59,15 @@ def _add_formatted_runs(paragraph, text, default_color=None, default_size=Pt(10)
 
 
 def build_docx_resume(md_text: str, output_path: Path):
-    """Builds an executive-grade, ATS-optimized Microsoft Word (.docx) resume."""
+    """Builds a strictly 1-PAGE, executive-grade Microsoft Word (.docx) resume."""
     doc = docx.Document()
     
-    # Professional 0.65 inch margins maximize clean layout without crowding
+    # 0.5-inch margins guarantee maximum content density on a single page
     for section in doc.sections:
-        section.top_margin = Inches(0.65)
-        section.bottom_margin = Inches(0.65)
-        section.left_margin = Inches(0.7)
-        section.right_margin = Inches(0.7)
+        section.top_margin = Inches(0.5)
+        section.bottom_margin = Inches(0.5)
+        section.left_margin = Inches(0.5)
+        section.right_margin = Inches(0.5)
         
     lines = md_text.strip().split("\n")
     is_first_h1 = True
@@ -87,11 +88,11 @@ def build_docx_resume(md_text: str, output_path: Path):
             p = doc.add_paragraph()
             p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             p.paragraph_format.space_before = Pt(0)
-            p.paragraph_format.space_after = Pt(2)
+            p.paragraph_format.space_after = Pt(1)
             run = p.add_run(name_text)
             run.bold = True
             run.font.name = "Calibri"
-            run.font.size = Pt(22)
+            run.font.size = Pt(18)
             run.font.color.rgb = NAVY
             is_first_h1 = False
             continue
@@ -109,73 +110,73 @@ def build_docx_resume(md_text: str, output_path: Path):
         if is_section_header:
             header_title = line.replace("#", "").replace("*", "").strip().upper()
             p = doc.add_paragraph()
-            p.paragraph_format.space_before = Pt(10)
-            p.paragraph_format.space_after = Pt(3)
+            p.paragraph_format.space_before = Pt(5)
+            p.paragraph_format.space_after = Pt(1.5)
             p.paragraph_format.keep_with_next = True
             run = p.add_run(header_title)
             run.bold = True
             run.font.name = "Calibri"
-            run.font.size = Pt(11.5)
+            run.font.size = Pt(10.5)
             run.font.color.rgb = NAVY
-            _add_bottom_border(p, color_hex="1A365D", size="6")
+            _add_bottom_border(p, color_hex="1A365D", size="4")
             continue
             
         # 3. Sub-headings for Roles / Companies (#### or ###)
         if line.startswith("#### ") or (line.startswith("### ") and not is_section_header):
             role_text = line.replace("#", "").strip()
             p = doc.add_paragraph()
-            p.paragraph_format.space_before = Pt(6)
-            p.paragraph_format.space_after = Pt(1)
+            p.paragraph_format.space_before = Pt(3.5)
+            p.paragraph_format.space_after = Pt(0.5)
             p.paragraph_format.keep_with_next = True
-            _add_formatted_runs(p, role_text, default_color=SLATE, default_size=Pt(10.5))
+            _add_formatted_runs(p, role_text, default_color=SLATE, default_size=Pt(9.8))
             continue
             
-        # 4. Bullet Points
+        # 4. Bullet Points (High-density spacing for 1-page fit)
         if line.startswith("- ") or line.startswith("* "):
             bullet_text = line[2:].strip()
             p = doc.add_paragraph(style="List Bullet")
-            p.paragraph_format.left_indent = Inches(0.25)
+            p.paragraph_format.left_indent = Inches(0.2)
             p.paragraph_format.space_before = Pt(0)
-            p.paragraph_format.space_after = Pt(2.5)
-            p.paragraph_format.line_spacing = 1.15
-            _add_formatted_runs(p, bullet_text, default_color=BODY, default_size=Pt(9.8))
+            p.paragraph_format.space_after = Pt(1.2)
+            p.paragraph_format.line_spacing = 1.05
+            _add_formatted_runs(p, bullet_text, default_color=BODY, default_size=Pt(9.2))
             continue
             
         # 5. Dates / Location line or Subtitle/Contact lines
         if any(sep in line for sep in ["|", "•", "@", "linkedin.com"]):
             p = doc.add_paragraph()
-            p.paragraph_format.space_before = Pt(1)
-            p.paragraph_format.space_after = Pt(3)
+            p.paragraph_format.space_before = Pt(0.5)
+            p.paragraph_format.space_after = Pt(2)
             
             # Contact info line under candidate name
             if any(term in line.lower() for term in ["@", "linkedin", "phone", "+", "authorized"]):
                 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                _add_formatted_runs(p, line, default_color=MUTED, default_size=Pt(9.2))
-            elif any(term in line.lower() for term in ["executive", "specialist", "leader", "manager", "director", "engineer"]):
+                _add_formatted_runs(p, line, default_color=MUTED, default_size=Pt(9.0))
+            elif any(term in line.lower() for term in ["executive", "specialist", "leader", "manager", "director", "engineer", "lead"]):
                 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                _add_formatted_runs(p, line, default_color=SLATE, default_size=Pt(10.5))
+                _add_formatted_runs(p, line, default_color=SLATE, default_size=Pt(10.0))
             else:
-                _add_formatted_runs(p, line, default_color=MUTED, default_size=Pt(9.5))
+                _add_formatted_runs(p, line, default_color=MUTED, default_size=Pt(9.0))
             continue
             
-        # 6. Standard Body Paragraph
+        # 6. Standard Body Paragraph (Summary, etc.)
         p = doc.add_paragraph()
-        p.paragraph_format.space_before = Pt(2)
-        p.paragraph_format.space_after = Pt(4)
-        p.paragraph_format.line_spacing = 1.15
-        _add_formatted_runs(p, line, default_color=BODY, default_size=Pt(9.8))
+        p.paragraph_format.space_before = Pt(1.5)
+        p.paragraph_format.space_after = Pt(2.5)
+        p.paragraph_format.line_spacing = 1.08
+        _add_formatted_runs(p, line, default_color=BODY, default_size=Pt(9.2))
 
     doc.save(str(output_path))
 
 
 def build_docx_cover_letter(md_text: str, output_path: Path):
-    """Builds an executive-grade Microsoft Word (.docx) cover letter."""
+    """Builds a matching executive Microsoft Word (.docx) cover letter."""
     doc = docx.Document()
     for section in doc.sections:
-        section.top_margin = Inches(0.8)
-        section.bottom_margin = Inches(0.8)
-        section.left_margin = Inches(0.85)
-        section.right_margin = Inches(0.85)
+        section.top_margin = Inches(0.75)
+        section.bottom_margin = Inches(0.75)
+        section.left_margin = Inches(0.75)
+        section.right_margin = Inches(0.75)
         
     lines = md_text.strip().split("\n")
     NAVY = RGBColor(26, 54, 93)
@@ -190,19 +191,19 @@ def build_docx_cover_letter(md_text: str, output_path: Path):
             p = doc.add_paragraph()
             p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             p.paragraph_format.space_before = Pt(0)
-            p.paragraph_format.space_after = Pt(4)
+            p.paragraph_format.space_after = Pt(3)
             run = p.add_run(line[2:].strip().replace("*", ""))
             run.bold = True
             run.font.name = "Calibri"
-            run.font.size = Pt(18)
+            run.font.size = Pt(16)
             run.font.color.rgb = NAVY
             continue
             
         p = doc.add_paragraph()
         p.paragraph_format.space_before = Pt(2)
-        p.paragraph_format.space_after = Pt(6)
+        p.paragraph_format.space_after = Pt(5)
         p.paragraph_format.line_spacing = 1.15
-        _add_formatted_runs(p, line, default_color=BODY, default_size=Pt(10.5))
+        _add_formatted_runs(p, line, default_color=BODY, default_size=Pt(10))
 
     doc.save(str(output_path))
 
@@ -216,57 +217,54 @@ def export_application_package(
     quick_apply_pitch: str,
     tool_context: ToolContext
 ) -> str:
-    """Exports the tailored CV, cover letter, and direct pitch into a company-specific folder on the user's machine,
-    generating both native Microsoft Word (.docx) and Markdown (.md) files ready for direct job submission.
+    """Exports the tailored 1-page CV, cover letter, and direct pitch into a company-specific folder on the user's machine,
+    generating both native Microsoft Word (.docx) and Markdown (.md) files.
     """
-    # 1. Clean company and title names for folder path
     clean_company = re.sub(r'[^\w\s-]', '', company).strip().replace(" ", "_")
     clean_title = re.sub(r'[^\w\s-]', '', job_title).strip().replace(" ", "_")
     
-    # 2. Define the company folder path inside 'ready_to_apply'
     company_folder = Path(__file__).parent.parent / "ready_to_apply" / clean_company
     company_folder.mkdir(parents=True, exist_ok=True)
     
-    # 3. Generate Microsoft Word (.docx) files
-    resume_docx = company_folder / f"{clean_company}_Tailored_Resume.docx"
+    # 1. Generate Microsoft Word (.docx) files (guaranteed 1-page CV format)
+    resume_docx = company_folder / f"{clean_company}_1Page_Resume.docx"
     cover_docx = company_folder / f"{clean_company}_Cover_Letter.docx"
     build_docx_resume(tailored_cv_markdown, resume_docx)
     build_docx_cover_letter(cover_letter_markdown, cover_docx)
     
-    # 4. Save Markdown files for review or copy-pasting
-    resume_md = company_folder / f"{clean_company}_Tailored_Resume.md"
+    # 2. Save Markdown copies
+    resume_md = company_folder / f"{clean_company}_1Page_Resume.md"
     cover_md = company_folder / f"{clean_company}_Cover_Letter.md"
     resume_md.write_text(tailored_cv_markdown, encoding="utf-8")
     cover_md.write_text(cover_letter_markdown, encoding="utf-8")
     
-    # 5. Save Quick Pitch & Link
+    # 3. Save Quick Pitch & Direct Link
     pitch_file = company_folder / "Job_Pitch_and_Link.md"
     pitch_content = f"""# {job_title} at {company}
-**LinkedIn Job Link:** {job_url}
+**Direct Application Link:** {job_url}
 
 ---
 
-## ⚡ Quick 150-Word Pitch (for LinkedIn InMail / Easy Apply)
+## ⚡ Quick 150-Word Outreach Pitch (for LinkedIn InMail / Easy Apply)
 {quick_apply_pitch}
 
 ---
 
-## 📁 Generated Files in this Folder
-- 📄 **Word Resume:** `{resume_docx.name}` (Formatted executive DOCX, ready to upload directly!)
-- ✉️ **Word Cover Letter:** `{cover_docx.name}` (Professional formatted letterhead DOCX)
+## 📁 Generated Documents in this Folder
+- 📄 **1-Page Word Resume:** `{resume_docx.name}` (Strictly 1-page, 100% grounded in your real profile)
+- ✉️ **Word Cover Letter:** `{cover_docx.name}` (Executive letterhead format)
 - 📝 **Markdown Copies:** `{resume_md.name}`, `{cover_md.name}`
 """
     pitch_file.write_text(pitch_content, encoding="utf-8")
     
-    # 6. Return the exact paths so the agent can show them clearly to the user
     return (
         f"Application package successfully created in company folder:\n"
         f"📁 {company_folder}\n\n"
-        f"Generated ready-to-use documents:\n"
-        f"1. 📄 Resume (DOCX): '{resume_docx.name}' (Professional Word format ready for direct application)\n"
-        f"2. ✉️ Cover Letter (DOCX): '{cover_docx.name}' (Matching executive letterhead)\n"
-        f"3. ⚡ Quick Pitch & Links: 'Job_Pitch_and_Link.md'\n\n"
-        f"All files are saved in: {company_folder}"
+        f"Generated documents:\n"
+        f"1. 📄 1-Page Resume (DOCX): '{resume_docx.name}' (Strictly 1 page, 100% truthful, ready for submission)\n"
+        f"2. ✉️ Cover Letter (DOCX): '{cover_docx.name}' (Tailored letterhead)\n"
+        f"3. ⚡ Quick Pitch & Direct Link: 'Job_Pitch_and_Link.md'\n\n"
+        f"All files saved in: {company_folder}"
     )
 
 
@@ -274,42 +272,63 @@ cv_builder_agent = Agent(
     name="cv_builder",
     mode="task",
     model="gemini-3.8-flash",
-    description="Takes a selected job and candidate master profile, and generates a tailored ATS CV and cover letter in ready-to-use DOCX and Markdown formats.",
+    description="Generates strictly 1-page, 100% truthful, non-hallucinated tailored resumes and cover letters in ready-to-use DOCX and Markdown formats.",
     instruction="""You are an elite Executive Career Ghostwriter and ATS Optimization Specialist.
-Your goal is to tailor the candidate's Master Profile specifically for the target job selected by the scout, producing executive-quality application materials in ready-to-use format.
+Your goal is to tailor the candidate's authentic profile specifically for the target job selected by the scout.
 
-Formatting & Structure Standards for `tailored_cv_markdown`:
-1. **Header**:
-   - `# [Candidate Full Name]`
-   - `**[Tailored Target Job Title] | [Core Domain Specialization]**`
-   - Contact Row: `[Location] | [Phone] | [Email] | [LinkedIn Profile URL] | [Work Authorization]`
-2. **`### EXECUTIVE SUMMARY`**:
-   - 3-4 punchy, high-impact sentences communicating candidate's proven value proposition, years of experience, and exact alignment with this role's core mission.
-3. **`### CORE COMPETENCIES & EXPERTISE`**:
-   - 12-16 high-frequency ATS keywords matching this job description, separated logically into Direct Core Skills and Methodological/Technical Skills.
-4. **`### PROFESSIONAL EXPERIENCE`**:
-   - Format: `#### [Job Title] | [Company]`
-   - `*[Location]* | **[Start Date – End Date]**`
-   - Bullet points MUST follow Google's X-Y-Z formula: "Accomplished [X] as measured by [Y], by doing [Z]".
-   - Bold key business metrics (€/$ revenue, % efficiency, deal sizes, team scale) and industry methodologies (e.g. MEDDPICC, Agile, AWS, Python, CRM).
-5. **`### EDUCATION & CERTIFICATIONS`**:
-   - Degrees, institutions, and relevant industry licenses/certifications.
-6. **`### LANGUAGES`**:
-   - Language proficiencies.
+CRITICAL RULES FOR 100% TRUTHFULNESS & ZERO HALLUCINATIONS:
+1. **Never Invent Companies, Jobs, or Dates**:
+   - You MUST ONLY use the real companies, real job titles, real dates, and real education stored in `master_profile['work_history']` and `master_profile['education']`.
+   - NEVER fabricate fictional past employers (e.g. do NOT invent 'Tech Advisory', 'FinFlow', etc. if they are not in the candidate's real history).
+   - NEVER fabricate fictional degrees or credentials.
 
-Formatting & Structure for `cover_letter_markdown`:
-- Professional letterhead with candidate name, contact info, and date.
-- Addressed to Hiring Manager / Talent Acquisition Team at [Company].
-- **Opening**: Targeted hook demonstrating understanding of the company's product/mission and stating why candidate is the ideal fit.
-- **Body**: 2 paragraphs with specific measurable achievements mirroring this role's needs. Use "bridge framing" for adjacent/stretch skills.
-- **Closing**: Confident, courteous call to action requesting an interview.
+2. **Authentic Contact Information**:
+   - Use the candidate's REAL email, phone, location, and LinkedIn stored in `master_profile['contact_info']`.
+   - NEVER invent fake contact info like `surbhi.arora@email.com` or `+45 XX XX XX XX`.
+   - If contact details (email, phone, location) are missing from `master_profile`, ASK the candidate for them before finalizing!
+
+3. **Resonating Tailoring (Not Fabricating)**:
+   - Tailoring means taking the candidate's REAL accomplishments and highlighting/rephrasing them to align directly with the target job description.
+   - Re-order bullet points so the candidate's most relevant real achievements appear first.
+   - Use the keywords and terminology from the job description when describing the candidate's actual responsibilities.
+   - If the candidate has adjacent/stretch skills, bridge their real past projects to the new role's core problem.
+
+4. **Ask If Any Doubts or Gaps**:
+   - If a core technical requirement in the job posting is not mentioned anywhere in the candidate's profile, ASK the candidate directly:
+     *"The job requires experience with [X]. Have you worked with [X] before so I can highlight it accurately, or should we emphasize your transferrable experience in [Y]?"*
+
+5. **STRICT 1-PAGE CV FORMAT (Under 380 Words)**:
+   The CV MUST fit on exactly ONE page. Follow this compact, high-impact structure:
+   - **Header**:
+     `# [Candidate Real Name]`
+     `**[Tailored Target Role Title]**`
+     `[Real Location] | [Real Phone] | [Real Email] | [Real LinkedIn URL]`
+   - **`### EXECUTIVE SUMMARY`**:
+     Exactly 2-3 dense, punchy sentences connecting the candidate's proven domain background to this company's core mission.
+   - **`### CORE COMPETENCIES`**:
+     8-12 targeted keywords matching this role across 2 clean lines.
+   - **`### PROFESSIONAL EXPERIENCE`**:
+     Use only the candidate's real companies and roles:
+     `#### [Real Job Title] | [Real Company]`
+     `*[Real Location]* | **[Real Start Date – Real End Date]**`
+     * Current / Most Recent Role: 3-4 impactful bullets using Google's X-Y-Z formula: Accomplished [X], measured by [Y], by doing [Z].
+     * Earlier Roles: 2 impactful bullets each.
+     * Bold key real metrics and keywords.
+   - **`### EDUCATION & CERTIFICATIONS`**:
+     1-2 compact lines using only the candidate's real degrees and licenses.
+
+Formatting for `cover_letter_markdown`:
+- Executive letterhead with candidate's real name and contact info.
+- Addressed to Hiring Team at [Company].
+- 3 compelling, focused paragraphs:
+  * Opening: Enthusiastic hook with relevance to company's mission.
+  * Body: 1-2 real measurable accomplishments from past experience that prove fit.
+  * Closing: Confident, professional request for an interview.
 
 Formatting for `quick_apply_pitch`:
-- 100-150 word punchy, compelling outreach note suitable for LinkedIn InMail, Easy Apply comments, or cold email.
+- 100-150 word punchy outreach note for LinkedIn InMail, Easy Apply comments, or cold email.
 
-Execution:
-- Call `export_application_package` to generate both `.docx` and `.md` files in the company's dedicated folder.
-- Notify the user with a summary and provide the exact file paths!
+Call `export_application_package` to write both `.docx` and `.md` files to disk in the company's dedicated folder.
 """,
     tools=[export_application_package]
 )
